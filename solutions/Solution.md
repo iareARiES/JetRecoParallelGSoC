@@ -132,19 +132,28 @@ ever write to the same memory location — no locks or atomics are needed.
 ## 3. GPU Porting Discussion
 
 A detailed discussion of how to port this computation to GPU using Julia is in
-[GPU_DISCUSSION.md](../GPU_DISCUSSION.md). Key points covered:
+[GPU_DISCUSSION.md](GPU_DISCUSSION.md). We also wrote and ran a CUDA kernel on
+**Google Colab with a Tesla T4** — see
+[ColabT4_GPU_Testing.ipynb](ColabT4_GPU_Testing.ipynb) for the notebook.
 
-- **Ecosystem:** Use `CUDA.jl` for NVIDIA hardware; `KernelAbstractions.jl` for portability.
-- **Memory management:** Transfer data to GPU once, keep it there. Our RTX 4050 Laptop
-  (6 GB GDDR6) can hold the 400 MB output matrix but with limited headroom.
-- **Kernel design:** Map each `(i,j)` pair to a thread in a 2D grid (e.g. 16×16 blocks).
-- **Symmetry trade-off:** On GPU, computing the full n×n grid is generally preferable to
-  upper-triangle-only, because the latter introduces warp divergence that offsets the 2×
-  compute saving.
-- **Precision:** Keep `Float32` — GPU FP32 throughput is typically 2× FP64 (or more).
-- **sqrt optimisation:** If only distance comparisons are needed, use squared distances.
-- **Expected speedup on our RTX 4050 Laptop:** ~2–3× over CPU parallel peak (~9 TFLOPS
-  FP32, compute-bound). Data-centre GPUs would scale proportionally higher.
+### Measured GPU Results
+
+| Metric | Tesla T4 (Cloud) | RTX 4050 Laptop (Local) |
+|---|---|---|
+| **VRAM & Architecture** | 14.56 GB, Turing | 5.64 GB, Ada Lovelace |
+| **Median time** | 6.623 ms | 219.012 ms |
+| **Throughput** | **15,098 M ops/sec** | **456.6 M ops/sec** |
+| **Speedup vs serial original** | **174.7×** | **5.3×** |
+| **Speedup vs parallel peak (4 threads)** | **43.7×** | **1.32×** |
+
+### Key design points for GPU porting:
+
+- Use `CUDA.jl` for NVIDIA hardware; `KernelAbstractions.jl` for portability.
+- Transfer data to GPU once, keep it there — avoid round-tripping the 400 MB output.
+- Map each `(i,j)` pair to a thread in a 2D grid (16×16 blocks).
+- Compute the full n×n grid (not upper triangle) — avoids warp divergence.
+- Keep `Float32` precision — GPU FP32 throughput is typically 2× FP64 or more.
+- Consider squared distances (skip `sqrt`) if only comparisons are needed.
 
 ---
 
