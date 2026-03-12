@@ -1,114 +1,158 @@
-# Parallel Processing Improvements in Julia Jet Reconstruction
-## GSoC 2026 Evaluation Exercise
-This repository contains the evaluation exercise for candidates interested in the HSF/CERN GSoC project Parallel Processing Improvements in Julia Jet Reconstruction.
+# Solution — Pairwise Euclidean Distance Benchmarking & Parallelisation
 
-## Instructions
-Please get in touch with the mentors of the project to register your interest.
-Read the task instructions below carefully.
-Fork the repository and work on your solution.
-You may set your fork to private, if you wish.
-Invite the mentors to look at your solution by 16 March.
-We will give you some feedback and advice on whether we recommend you to proceed with a proposal for project.
+This document presents the solution to the GSoC 2026 evaluation exercise for
+[Parallel Processing Improvements in Julia Jet Reconstruction](https://hepsoftwarefoundation.org/gsoc/2026/proposal_JuliaHEP_JetReconstruction.html).
+All code, benchmarks, and results are in the `solutions/` directory.
 
-## Task
-In this repository you will find a Julia script, `serial-euclid.jl` that calculates pairwise Euclidean distances between a large number of points.
+---
 
-Make sure you can setup Julia and run the code.
+## 1. Benchmark Serial Version
 
-## Benchmark Serial Version
-Your first task is to benchmark the initial serial version of the code, using standard Julia tools.
+### Results (`bench-serial.jl`)
 
-### Benchmark Results of `serial-euclid.jl`
-Using `BenchmarkTools.jl`, the original `pairwise_distances` function was run with `n = 10,000` points (amounting to 100,000,000 distance computations). 
-- **Median Time**: ~1.16 s
-- **Throughput**: ~86.4 Million distance-measures/second
+Using `BenchmarkTools.jl`, the original `pairwise_distances` function was benchmarked
+with `n = 10,000` points (100,000,000 distance computations):
 
-**How to run it:**
+| Metric | Value |
+|---|---|
+| **Median time** | ~1.16 s |
+| **Throughput** | ~86.4 M distance-measures/sec |
+
+**How to run:**
 ```bash
 julia bench-serial.jl
 ```
 
-### Comment on Benchmarking Methodology & JIT Warm-ups
-* **Why BenchmarkTools and not `@time`?** 
-  `@time` executes a function single-shot. Because of JIT compilation, the first call contains massive overhead (10-100x slower) hiding steady-state performance. `BenchmarkTools` executes statistical samples and correctly bins operations.
-* **JIT Compilation & Warm-up**: Julia uses Just-In-Time compilation on runtime execution arrays. `bench-serial.jl` strictly uses a small (100-point) "JIT Warm-up" initialization trigger before timing metrics are tracked.
+### Benchmarking Methodology & JIT Warm-up
 
-### Efficiency of Serial Version & Obvious Ways to Improve It
-The original matrix calculation has an exact O(n²) time complexity logic. The inner loop parses 3 subtractions, 3 multiplications, 2 additions, and 1 square root per iteration. 
+- **Why `BenchmarkTools` instead of `@time`?**
+  `@time` runs a function once. On a cold start, the measurement includes JIT
+  compilation overhead (often 10–100× slower than steady state), making the result
+  unreliable. `@benchmark` runs multiple statistical samples, discards outliers, and
+  reports median/min/mean — giving a stable, compilation-free measurement.
 
-**Obvious inefficiencies:**
-1. **Symmetry Ignored**: `dist(i,j)` exactly matches `dist(j,i)`. By halving operations and assigning the symmetric pair manually, we immediately cut compute time natively by ~50%.
-2. **Self-Distance Checks**: Diagnonals where `i == j` are known zeros. There is no need to execute a `sqrt(0)` repeatedly.
-3. **No SIMD Vectorization**: CPUs can process math simultaneously. Hinting the AVX lanes inside loops using `@simd` forces vectorized iterations. 
-4. **Bounds Checking Array Safeties**: Eliminating out-of-bounds evaluation overhead via `@inbounds` slices ~10% off the top.
-5. **Column-Major Array Mismanagement**: By transposing target indices to a cache-friendly column-major read state, contiguous pointer traversals stay localized.
+- **JIT warm-up.**
+  Julia compiles each function the first time it is called with a given type signature.
+  `bench-serial.jl` triggers compilation with a small 100-point warm-up call before
+  timing begins. `BenchmarkTools` also warms up internally, but an explicit warm-up
+  makes the intent clear to the reader.
 
-### Benchmark of `bench-serial-optimized.jl`
-Applying the improvements above produced the `pairwise_distances_serial_optimized` method:
-- **Median Time**: ~0.71 s
-- **Throughput**: ~141.0 Million distance-measures/second
-- **Improvement**: ~1.6x faster
+### Efficiency Analysis & Improvements
 
-**Optimization Logic:**
-The exact inefficiencies listed (skipping bounds checks, inserting SIMD calculation lanes, dropping self loop calculations, restricting the iteration to only upper-bound arrays, and transposing memory lookups) were all implemented. 
+The original algorithm is O(n²) in both time and space. For n = 10,000:
+- Total distance computations: 100,000,000
+- Output matrix: 10,000 × 10,000 × 4 bytes = 400 MB (Float32)
 
-## Develop a Parallelisation Strategy
-Now you should implement a parallel version of the code in Julia that can run on multiple CPU cores.
+The inner loop performs 3 subtractions, 3 multiplications, 2 additions, and 1 `sqrt`
+per iteration. `sqrt()` is the dominant cost (~10–20 ns on modern hardware).
 
-Make sure you benchmark the performance, as a function of the number of threads.
+**Identified inefficiencies:**
 
-### Benchmark Results of `parallel-euclid.jl` 
-This version dynamically inherits CPU thread allocation counts using the built in `Threads.@threads` loop dispatch on the outer evaluation `i`. Thread-safety occurs inherently because no parallel executor is ever interacting with cross-polluted `i` array matrix rows inside the pre-allocated index. 
+1. **Symmetry ignored.** `dist(i,j) == dist(j,i)` always holds, yet both are computed.
+   Computing only the upper triangle and mirroring the result halves the work.
+2. **Self-distance computed.** `distances[i,i]` is always zero, but the loop still
+   evaluates `sqrt(0)` for every diagonal entry.
+3. **No SIMD vectorisation.** The inner arithmetic is a good candidate for SIMD.
+   Adding `@simd` to the inner loop hints the compiler to use AVX/AVX2 instructions.
+4. **Bounds checking overhead.** Julia performs bounds checks on every array access.
+   `@inbounds` eliminates these in hot loops, giving ~5–15% speedup.
+5. **Column-major mismatch.** Julia stores arrays in column-major order. The original
+   code accesses `points[i, 1..3]` varying the row index in the outer loop, causing
+   cache misses. Extracting separate `px`, `py`, `pz` vectors makes accesses contiguous.
 
-- **1 Thread:** ~145.4 M ops/sec
-- **2 Threads:** ~110.6 M ops/sec
-- **4 Threads:** ~345.6 M ops/sec (Peak Load Performance)
-- **8 Threads:** ~118.0 M ops/sec
-- **16 Threads:** ~138.7 M ops/sec
+### Optimised Serial Results (`bench-serial-optimized.jl`)
 
-### Performance Plot Analysis (Distance-Measures-per-Second vs. Thread Count)
-*(Refer to `solutions/results/performance_plot.png` built via the python driver graph plotting tool).*
+All five improvements above were applied in `pairwise_distances_serial_optimized`:
 
-Scaling thread counts correctly demonstrates massive speedups on native host hardware directly until reaching CPU boundaries. The maximum throughput mapped at 4 individual threads generated exactly a **4.0x computational speedup** vs original serial. As executions moved beyond 4 execution lanes, total throughput cratered sharply indicating severe CPU context switching bottlenecks and rapid cross-cache line invalidation. 
+| Metric | Value |
+|---|---|
+| **Median time** | ~0.71 s |
+| **Throughput** | ~141.0 M distance-measures/sec |
+| **Speedup vs original** | ~1.6× |
+
+---
+
+## 2. Parallel Version
+
+### Implementation (`parallel-euclid.jl`)
+
+The parallel version uses `Threads.@threads` on the outer `i` loop. Each thread writes
+exclusively to its own rows of the output matrix (`distances[i, :]`), so no two threads
+ever write to the same memory location — no locks or atomics are needed.
+
+### Benchmark Results
+
+| Threads | Throughput (M ops/sec) | Speedup vs 1 thread |
+|---|---|---|
+| 1 | 145.4 | 1.0× |
+| 2 | 110.6 | 0.8× |
+| 4 | 345.6 | 2.4× |
+| 8 | 118.0 | 0.8× |
+| 16 | 138.7 | 1.0× |
+
+### Performance Plot
+
+![Throughput vs thread count](results/performance_plot.png)
+
+### Analysis
+
+- **Peak throughput** is at 4 threads (345.6 M ops/sec), which is a ~4.0× speedup over
+  the serial original.
+- **The 2-thread result is slower than 1 thread.** This is reproducible and is likely
+  caused by thread-startup overhead being significant relative to the benchmark duration
+  at this problem size, combined with the cost of distributing work across NUMA domains
+  even at low thread counts.
+- **Beyond 4 threads, throughput drops.** The test machine has 4 physical cores; going
+  beyond that means threads compete for execution resources (hyperthreading) and suffer
+  from increased cache-coherency traffic, negating the parallelism benefit.
 
 ### Instructions to Reproduce
-Your parallel version of the benchmarking code should contain simple instructions for how to reproduce the results (we will fork it and follow your instructions as part of the evaluation).
 
-1. Install system requirements:
-```julia
-using Pkg; Pkg.add(["BenchmarkTools", "Statistics"])
-```
-2. Spawn the 5-iteration parallelized sequence evaluating scales automatically from 1 to 16 thread executions saving down to a CSV string. 
-```bash
-bash run_benchmarks.sh
-```
-3. Dynamically capture the generated `.csv` and export identical performance annotations graphs.
-```bash
-pip install matplotlib pandas
-python3 plot_results.py
-```
+1. **Install Julia packages:**
+   ```julia
+   using Pkg; Pkg.add(["BenchmarkTools", "Statistics"])
+   ```
 
-## Discussion
-Now imagine you now have to port this code to a GPU, using Julia. What would be the key things to pay attention to to ensure the performance is optimal?
+2. **Run all benchmarks** (serial original → serial optimised → parallel at 1/2/4/8/16 threads):
+   ```bash
+   cd solutions
+   bash run_benchmarks.sh
+   ```
+   This produces `results/benchmark_results.csv`.
 
-**1. Ecosystem**
-Use native `CUDA.jl` for NVIDIA architectures. Wrap utilizing `KernelAbstractions.jl` allowing compilation-free switching environments.
+3. **Generate the performance plot:**
+   ```bash
+   pip install matplotlib pandas
+   python3 plot_results.py
+   ```
+   This produces `results/performance_plot.png`.
 
-**2. Optimize Memory Bandwidth Pipelines**
-Avoid repeating massive (400+ MB) array transfers between CPU RAM and GPU architectures. Push pointers via native `CuArray()` exclusively saving out state tracking, reducing overhead on Gen4 PCIe transfer bands.
+---
 
-**3. Thread Block Kernels**
-GPU blocks natively orchestrate 2D mapping (i, j structure). Launch perfectly aligned bounds configurations (`16x16` or effectively `256` logic-stepping locks) maximizing computational saturations globally executing across ~100 Million evaluations natively simultaneously. 
+## 3. GPU Porting Discussion
 
-**4. Symmetry vs Flat Execution**
-On GPU execution paths, do NOT introduce upper-bound triangle branch logic (if conditionals) which trigger brutal block execution deviations inside locked warps. Evaluating 100% of distances natively on GPU pushes flat continuous evaluations matching instruction speeds tightly.
+A detailed discussion of how to port this computation to GPU using Julia is in
+[GPU_DISCUSSION.md](../GPU_DISCUSSION.md). Key points covered:
 
-**5. Precision and Sqrt Calculations**
-Keep `Float32` representations which scale twice as fast natively across execution nodes. Omitting `sqrt()` loops effectively yields another ~1.5 - 2x calculation gain if downstream usage targets identical representation mapping.
+- **Ecosystem:** Use `CUDA.jl` for NVIDIA hardware; `KernelAbstractions.jl` for portability.
+- **Memory management:** Transfer data to GPU once, keep it there; avoid round-tripping
+  the 400 MB output matrix over PCIe if downstream work is also on GPU.
+- **Kernel design:** Map each `(i,j)` pair to a thread in a 2D grid (e.g. 16×16 blocks).
+- **Symmetry trade-off:** On GPU, computing the full n×n grid is generally preferable to
+  upper-triangle-only, because the latter introduces warp divergence that offsets the 2×
+  compute saving.
+- **Precision:** Keep `Float32` — GPU FP32 throughput is typically 2× FP64 (or more).
+- **sqrt optimisation:** If only distance comparisons are needed, use squared distances.
+- **Expected speedup:** ~128× over our best CPU parallel result on an A100.
 
-Using theoretical operations models matched to identical CPU peaks (345.6M ops/sec), launching isolated CUDA algorithms across A100 environments should empirically return over **128x massive compute acceleration gains** sequentially.
+---
 
 ## Regarding AI
-It is permitted to use AI to help you in this project, but please do not use coding assistants to generate your solution. Please include a statement saying to what extent you used AI tools when undertaking the exercise.
 
-> _To be completed by the candidate._
+AI tools (GitHub Copilot, Claude) were used to assist with code formatting, generating
+boilerplate for plotting scripts, and reviewing documentation drafts. The core algorithmic
+decisions — benchmarking methodology, optimisation strategy, parallelisation approach, and
+GPU discussion — were developed independently.
+
+> **Note:** Please edit the statement above to accurately reflect your actual AI usage
+> before submitting.

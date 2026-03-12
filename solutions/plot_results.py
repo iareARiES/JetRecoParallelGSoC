@@ -13,6 +13,7 @@ import matplotlib.ticker as ticker
 import numpy as np
 import os
 
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 os.makedirs("results", exist_ok=True)
 df = pd.read_csv("results/benchmark_results.csv")
 

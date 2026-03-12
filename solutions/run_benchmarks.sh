@@ -13,6 +13,7 @@
 #   results/benchmark_results.csv
 
 set -e
+cd "$(dirname "$0")"
 mkdir -p results
 
 OUTPUT=results/benchmark_results.csv

@@ -74,7 +74,7 @@ speedup = opt_throughput / orig_throughput
 
 println(stderr, "\n============================================================")
 println(stderr, "  BENCHMARK COMPARISON: Serial Original vs Serial Optimized")
-println(stderr, "  Dataset: n=10,000 points (Float32), same random seed")
+println(stderr, "  Dataset: n=10,000 points (Float32), same input array")
 println(stderr, "============================================================")
 println(stderr, "  Variant              Median (s)   Throughput (ops/s)   Speedup")
 println(stderr, "  -------              ----------   ------------------   -------")

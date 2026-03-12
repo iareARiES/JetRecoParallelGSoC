@@ -36,7 +36,7 @@ thread_count = parse(Int, get(ARGS, 1, string(Threads.nthreads())))
 @assert Threads.nthreads() == thread_count "Mismatch: Julia started with $(Threads.nthreads()) threads but ARGS says $thread_count. Re-run with julia --threads $thread_count"
 
 n = 10_000
-points = rand(Float32, (n, n == 10_000 ? 3 : 3))   # fixed dataset
+points = rand(Float32, (n, 3))
 
 result = @benchmark pairwise_distances_parallel($points) samples=5 evals=1 seconds=300
 
