@@ -6,4 +6,5 @@ stage,variant,threads,median_s,throughput_per_sec
 3,parallel,4,0.289379,3.4556703293e8
 3,parallel,8,0.84715,1.1804289498e8
 3,parallel,16,0.720865,1.3872218355e8
-4,gpu_tesla_t4,1,0.006623,1.509824009629e10
+4,gpu_tesla_t4_colab,1,0.006623,1.509824009629e10
+4,gpu_RTX_4050_6GB,1,0.219012,4.565960617e8
