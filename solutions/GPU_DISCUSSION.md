@@ -7,9 +7,8 @@ From our measurements:
 - Serial optimized throughput:   ~141.0 M ops/sec  (~1.6x faster)
 - Parallel peak throughput:      ~345.6 M ops/sec  (4 threads, ~4.0x over serial)
 
-Our local GPU is an NVIDIA RTX 4050 Laptop (6 GB GDDR6), but since CUDA.jl could not
-be installed locally due to network restrictions, we benchmarked on **Google Colab with a
-Tesla T4** (14.56 GB VRAM, Turing architecture, ~8.1 TFLOPS FP32).
+We benchmarked on two GPUs: locally on an **NVIDIA RTX 4050 Laptop** (5.64 GB GDDR6,
+Ada Lovelace) and on **Google Colab with a Tesla T4** (14.56 GB VRAM, Turing, ~8.1 TFLOPS FP32).
 
 ---
 
@@ -155,8 +154,9 @@ Our kernel performs ~7 FLOPs per (i,j) pair. The theoretical compute-bound peak 
 
 Our **measured** throughput of 15,098 M ops/sec far exceeds this naive compute-bound
 estimate. This is because the GPU hides arithmetic latency through massive parallelism
-— with 625 blocks of 256 threads (160,000 threads total), the T4's warp scheduler
-keeps CUDA cores fully saturated by switching between warps while others stall on sqrt.
+— with 625×625 = 390,625 blocks of 256 threads (~100 million threads total), the T4's
+warp scheduler keeps CUDA cores fully saturated by switching between warps while others
+stall on sqrt.
 
 The **43.7× speedup** over the CPU parallel peak confirms that this embarrassingly
 parallel workload maps extremely well to GPU hardware, even on a mid-range data-centre

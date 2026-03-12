@@ -132,9 +132,9 @@ ever write to the same memory location — no locks or atomics are needed.
 ## 3. GPU Porting Discussion
 
 A detailed discussion of how to port this computation to GPU using Julia is in
-[GPU_DISCUSSION.md](GPU_DISCUSSION.md). We also wrote and ran a CUDA kernel on
-**Google Colab with a Tesla T4** — see
-[ColabT4_GPU_Testing.ipynb](ColabT4_GPU_Testing.ipynb) for the notebook.
+[GPU_DISCUSSION.md](GPU_DISCUSSION.md). We wrote and ran a CUDA kernel on two GPUs
+— locally on an **RTX 4050 Laptop** and on **Google Colab with a Tesla T4** (see
+[ColabT4_GPU_Testing.ipynb](ColabT4_GPU_Testing.ipynb)).
 
 ### Measured GPU Results
 
@@ -159,10 +159,29 @@ A detailed discussion of how to port this computation to GPU using Julia is in
 
 ## Regarding AI
 
-AI tools (GitHub Copilot, Claude) were used to assist with code formatting, generating
-boilerplate for plotting scripts, and reviewing documentation drafts. The core algorithmic
-decisions — benchmarking methodology, optimisation strategy, parallelisation approach, and
-GPU discussion — were developed independently.
+### AI Assistance Statement
 
-> **Note:** Please edit the statement above to accurately reflect your actual AI usage
-> before submitting.
+AI tools were used only to assist with documentation quality and presentation. Specifically,
+AI assistance was used for improving the `Solution.md` and `GPU_DISCUSSION.md` file wording,
+enhancing vocabulary, and refining the formatting of comments and console output statements
+to make benchmark results clearer and more readable.
+
+All core technical work was performed independently. The analysis of performance improvements,
+parallel processing design, and the implementation of the code were done by studying official
+documentation and implementing the logic manually.
+
+AI assistance was partially used when configuring GPU inference on NVIDIA RTX 4050 and T4
+GPUs, mainly to help with environment connectivity and setup after reviewing documentation
+and tutorials.
+
+Additionally, AI was used to enhance console print formatting for better visual presentation
+of benchmark outputs (e.g., divider lines and structured output such as):
+
+```julia
+println(stderr, "============================================================")
+println(stderr, "  GPU BENCHMARK RESULTS")
+println(stderr, "============================================================")
+```
+
+These improvements were purely for visual clarity and presentation, and not for generating
+the core algorithmic implementation.
