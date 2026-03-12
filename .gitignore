@@ -36,3 +36,4 @@ tune.json
 **/profile/*
 /statprof/*
 /debug/*
+venv/
