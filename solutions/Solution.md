@@ -92,7 +92,7 @@ ever write to the same memory location — no locks or atomics are needed.
 
 ### Performance Plot
 
-![Throughput vs thread count](results/performance_plot.png)
+![Throughput vs thread count](Results/performance_plot.png)
 
 ### Analysis
 
@@ -118,14 +118,14 @@ ever write to the same memory location — no locks or atomics are needed.
    cd solutions
    bash run_benchmarks.sh
    ```
-   This produces `results/benchmark_results.csv`.
+   This produces `Results/benchmark_results.csv`.
 
 3. **Generate the performance plot:**
    ```bash
    pip install matplotlib pandas
    python3 Plots/plot_results.py
    ```
-   This produces `results/performance_plot.png`.
+   This produces `Results/performance_plot.png`.
 
 ---
 

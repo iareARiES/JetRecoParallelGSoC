@@ -1,6 +1,6 @@
 """
 plot_results.py
-Reads ../results/benchmark_results.csv and produces ../results/performance_plot.png
+Reads ../Results/benchmark_results.csv and produces ../Results/performance_plot.png
 
 Usage (from solutions/ directory):
     pip install matplotlib pandas
@@ -15,8 +15,8 @@ import os
 
 # Navigate to the solutions/ directory (parent of Plots/)
 os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-os.makedirs("results", exist_ok=True)
-df = pd.read_csv("results/benchmark_results.csv")
+os.makedirs("Results", exist_ok=True)
+df = pd.read_csv("Results/benchmark_results.csv")
 
 # ── Extract CPU data ──────────────────────────────────────────────────────────
 orig      = df[df["variant"] == "serial_original"]["throughput_per_sec"].values[0]
@@ -126,5 +126,5 @@ if has_gpu:
 ax2.legend(fontsize=8, loc="upper left")
 
 plt.tight_layout()
-plt.savefig("results/performance_plot.png", dpi=150, bbox_inches="tight")
-print("Plot saved to results/performance_plot.png")
+plt.savefig("Results/performance_plot.png", dpi=150, bbox_inches="tight")
+print("Plot saved to Results/performance_plot.png")

@@ -10,13 +10,13 @@
 #   BenchmarkTools and Statistics installed (see README)
 #
 # OUTPUT:
-#   results/benchmark_results.csv
+#   Results/benchmark_results.csv
 
 set -e
 cd "$(dirname "$0")"
-mkdir -p results
+mkdir -p Results
 
-OUTPUT=results/benchmark_results.csv
+OUTPUT=Results/benchmark_results.csv
 echo "stage,variant,threads,median_s,throughput_per_sec" > "$OUTPUT"
 
 # ── Stage 1: Serial original ──────────────────────────────────────────────────
