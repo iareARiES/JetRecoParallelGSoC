@@ -171,7 +171,7 @@ parallel processing design, and the implementation of the code were done by stud
 documentation and implementing the logic manually.
 
 AI assistance was partially used when configuring GPU inference on NVIDIA RTX 4050 and T4
-GPUs, mainly to help with environment connectivity and setup after reviewing documentation
+GPUs, mainly to help with environment connectivity ,debugging and setup after reviewing documentation
 and tutorials.
 
 Additionally, AI was used to enhance console print formatting for better visual presentation
@@ -184,4 +184,6 @@ println(stderr, "============================================================")
 ```
 
 These improvements were purely for visual clarity and presentation, and not for generating
-the core algorithmic implementation.
+the core algorithmic implementation. The logic was developed independently after carefully understanding 
+the base code file, studying the underlying mathematical implementations, and exploring the relevant 
+features provided by the language.
