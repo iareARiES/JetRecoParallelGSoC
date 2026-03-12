@@ -8,8 +8,9 @@ From our measurements:
 - Parallel peak throughput:      ~345.6 M ops/sec  (4 threads, ~4.0x over serial)
 - Peak CPU parallel speedup vs ideal: 4.0x out of theoretical 4x
 
-A modern GPU (e.g. NVIDIA A100) offers ~19,500 GFLOPS (FP32) vs ~1,000 GFLOPS for a
-high-end CPU. For an embarrassingly parallel workload like ours, GPU is the natural next step.
+Our system GPU (NVIDIA RTX 4050 Laptop, confirmed via `nvidia-smi`) offers ~9,000 GFLOPS
+(FP32) vs ~1,000 GFLOPS for a high-end CPU. For an embarrassingly parallel workload like
+ours, GPU is the natural next step.
 
 ---
 
@@ -30,8 +31,9 @@ For CERN use, CUDA.jl is the primary target (NVIDIA hardware dominates HEP clust
 Our distance matrix is:
   n × n × sizeof(Float32) = 10,000 × 10,000 × 4 = **400 MB**
 
-This must fit in GPU VRAM. An NVIDIA A100 has 80 GB — fine. An RTX 3090 has 24 GB — fine.
-An older V100 has 16 GB — fine. A GTX 1080 has 8 GB — marginal with other allocations.
+This must fit in GPU VRAM. Our RTX 4050 Laptop has **6 GB GDDR6** — the 400 MB output
+fits, but leaves limited headroom (~5.6 GB free). For larger n (e.g. 12,000+), VRAM
+would become a constraint requiring tiled computation.
 
 **Key rule:** Transfer data to GPU once, keep it there.
 ```julia
@@ -40,8 +42,10 @@ distances_gpu = CUDA.zeros(Float32, n, n) # allocate on GPU: 400 MB (no transfer
 # ... run kernel ...
 distances_cpu = Array(distances_gpu)     # GPU → CPU: 400 MB  (this is your bottleneck)
 ```
-The GPU→CPU copy of 400 MB over PCIe Gen4 takes ~200 ms. If you only need the distances
-on GPU (e.g. for further GPU processing), **avoid this copy entirely**.
+The GPU→CPU copy of 400 MB over PCIe Gen4 x16 (~32 GB/s unidirectional) takes ~12.5 ms.
+This is small relative to any non-trivial compute, but adds up over repeated calls.
+If you only need the distances on GPU (e.g. for further GPU processing), **avoid this
+copy entirely**.
 
 ---
 
@@ -112,7 +116,7 @@ Our code already uses Float32. This is optimal for GPU because:
 
 ## 6. Avoiding sqrt When Possible
 
-`sqrt()` is the most expensive operation in our kernel (~20 GPU cycles vs ~5 for multiply).
+`sqrt()` is the most expensive operation in our kernel (~32 cycles/warp vs ~4 for multiply).
 If distances are only used for **comparison** (e.g. finding nearest neighbours), replace:
 ```julia
 distances[i,j] = sqrt(dx*dx + dy*dy + dz*dz)
@@ -127,9 +131,26 @@ For jet reconstruction where actual distance values are needed, keep the sqrt.
 ## 7. Expected GPU Speedup vs Our CPU Results
 
 Our parallel CPU peak: ~345.6 M ops/sec on 4 threads.
-An NVIDIA A100 delivers ~312 TFLOPS FP32. Our kernel performs ~7 FLOPs per (i,j) pair.
-Theoretical GPU throughput: ~312e12 / 7 ≈ **44,500 M ops/sec**.
 
-Even accounting for memory bandwidth limits (A100: 2 TB/s) and kernel overhead, we
-expect a **GPU speedup of roughly 128x** over our best CPU parallel result.
-The actual speedup is bottlenecked by the 400 MB read of the output matrix on return.
+Our RTX 4050 Laptop delivers **~9 TFLOPS FP32** (2560 CUDA cores, Ada Lovelace).
+Our kernel performs ~7 FLOPs per (i,j) pair (3 subtractions + 3 FMAs for the squared
+terms + 1 sqrt).
+
+**Compute-bound estimate:**
+  9 × 10¹² / 7 ≈ 1,286 M ops/sec → ~3.7× over our CPU parallel peak.
+
+**Memory-bound check:**
+The kernel writes 4 bytes per (i,j) pair. With 192 GB/s GDDR6 bandwidth:
+  192 × 10⁹ / 4 = 48,000 M pairs/sec.
+Since 1,286 << 48,000, the kernel is **compute-bound** on this GPU — memory bandwidth
+is not the bottleneck.
+
+Accounting for realistic occupancy (~50–70% of peak due to register pressure, warp
+scheduling, and sqrt latency), we expect an effective throughput of ~640–900 M ops/sec,
+giving a **GPU speedup of roughly 2–3×** over our best CPU parallel result.
+
+On a data-centre GPU (e.g. NVIDIA A100 with 19.5 TFLOPS FP32 and 2 TB/s HBM2e),
+the same kernel would scale proportionally to ~50–100× over our CPU parallel peak.
+
+> **Note:** These estimates use standard FP32 CUDA core throughput, not Tensor Core
+> (FP16/TF32) figures which are much higher but not applicable to our kernel.

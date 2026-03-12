@@ -135,15 +135,16 @@ A detailed discussion of how to port this computation to GPU using Julia is in
 [GPU_DISCUSSION.md](../GPU_DISCUSSION.md). Key points covered:
 
 - **Ecosystem:** Use `CUDA.jl` for NVIDIA hardware; `KernelAbstractions.jl` for portability.
-- **Memory management:** Transfer data to GPU once, keep it there; avoid round-tripping
-  the 400 MB output matrix over PCIe if downstream work is also on GPU.
+- **Memory management:** Transfer data to GPU once, keep it there. Our RTX 4050 Laptop
+  (6 GB GDDR6) can hold the 400 MB output matrix but with limited headroom.
 - **Kernel design:** Map each `(i,j)` pair to a thread in a 2D grid (e.g. 16×16 blocks).
 - **Symmetry trade-off:** On GPU, computing the full n×n grid is generally preferable to
   upper-triangle-only, because the latter introduces warp divergence that offsets the 2×
   compute saving.
 - **Precision:** Keep `Float32` — GPU FP32 throughput is typically 2× FP64 (or more).
 - **sqrt optimisation:** If only distance comparisons are needed, use squared distances.
-- **Expected speedup:** ~128× over our best CPU parallel result on an A100.
+- **Expected speedup on our RTX 4050 Laptop:** ~2–3× over CPU parallel peak (~9 TFLOPS
+  FP32, compute-bound). Data-centre GPUs would scale proportionally higher.
 
 ---
 
