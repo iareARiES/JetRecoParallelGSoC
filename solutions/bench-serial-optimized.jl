@@ -29,14 +29,15 @@ Improvements over baseline:
   - Skips self-distance (diagonal always zero)
   - @inbounds eliminates per-access bounds checks
   - @simd hints compiler to vectorize inner arithmetic
-  - points_T is transposed for cache-friendly column-major access
+  - Separate px, py, pz vectors extracted for contiguous memory access
 """
 function pairwise_distances_serial_optimized(points::AbstractArray{T}) where T
     @assert size(points)[2] == 3
     n = size(points)[1]
     distances = zeros(T, (n, n))
-    # Transpose for cache-friendly access: 3×N layout lets us read
-    # all x-coords, then all y-coords, then all z-coords contiguously
+    # Extract coordinate vectors for contiguous memory access:
+    # reading px[i], px[j] accesses a single dense vector instead of
+    # striding across columns of the original N×3 matrix
     px = points[:, 1]
     py = points[:, 2]
     pz = points[:, 3]

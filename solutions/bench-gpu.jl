@@ -36,7 +36,7 @@ function pairwise_distances_gpu(points_cpu::Matrix{Float32})
     pz  = CuArray(points_cpu[:, 3])
     # Allocate output on GPU — 400 MB, no CPU<->GPU transfer needed
     out = CUDA.zeros(Float32, n, n)
-    # 16×16 = 256 threads/block — reliable default for Ada Lovelace
+    # 16×16 = 256 threads/block — reliable default for most NVIDIA GPUs
     threads = (16, 16)
     blocks  = (cld(n, 16), cld(n, 16))
     @cuda threads=threads blocks=blocks distance_kernel!(out, px, py, pz, n)
