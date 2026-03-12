@@ -127,7 +127,7 @@ For jet reconstruction where actual distance values are needed, keep the sqrt.
 ## 7. Measured GPU Results
 
 We ran the GPU benchmark in two environments:
-1. **Cloud:** Google Colab with a Tesla T4 (see [ColabT4_GPU_Testing.ipynb](ColabT4_GPU_Testing.ipynb))
+1. **Cloud:** Google Colab with a Tesla T4 (see [ColabT4_GPU_Testing.ipynb](Codes/ColabT4_GPU_Testing.ipynb))
 2. **Local:** NVIDIA RTX 4050 Laptop GPU (using the `bench-gpu.jl` script)
 
 | Metric | Tesla T4 (Colab) | RTX 4050 Laptop (Local) |

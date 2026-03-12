@@ -21,22 +21,22 @@ echo "stage,variant,threads,median_s,throughput_per_sec" > "$OUTPUT"
 
 # ── Stage 1: Serial original ──────────────────────────────────────────────────
 echo "[1/3] Benchmarking serial original..."
-julia bench-serial.jl >> "$OUTPUT"
+julia Codes/bench-serial.jl >> "$OUTPUT"
 echo "      Done."
 
 # ── Stage 2: Serial optimized ────────────────────────────────────────────────
 echo "[2/3] Benchmarking serial optimized..."
-julia bench-serial-optimized.jl >> "$OUTPUT"
+julia Codes/bench-serial-optimized.jl >> "$OUTPUT"
 echo "      Done."
 
 # ── Stage 3: Parallel across thread counts ───────────────────────────────────
 echo "[3/3] Benchmarking parallel (threads: 1 2 4 8 16)..."
 for T in 1 2 4 8 16; do
     echo "      Running with $T thread(s)..."
-    julia --threads "$T" parallel-euclid.jl "$T" >> "$OUTPUT"
+    julia --threads "$T" Codes/parallel-euclid.jl "$T" >> "$OUTPUT"
 done
 echo "      Done."
 
 echo ""
 echo "All benchmarks complete. Results saved to: $OUTPUT"
-echo "Run: python3 plot_results.py  to generate the performance plot."
+echo "Run: python3 Plots/plot_results.py  to generate the performance plot."

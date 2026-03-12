@@ -1,10 +1,10 @@
 """
 plot_results.py
-Reads results/benchmark_results.csv and produces results/performance_plot.png
+Reads ../results/benchmark_results.csv and produces ../results/performance_plot.png
 
-Usage:
+Usage (from solutions/ directory):
     pip install matplotlib pandas
-    python3 plot_results.py
+    python3 Plots/plot_results.py
 """
 
 import pandas as pd
@@ -13,7 +13,8 @@ import matplotlib.ticker as ticker
 import numpy as np
 import os
 
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
+# Navigate to the solutions/ directory (parent of Plots/)
+os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 os.makedirs("results", exist_ok=True)
 df = pd.read_csv("results/benchmark_results.csv")
 

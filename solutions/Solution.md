@@ -123,7 +123,7 @@ ever write to the same memory location — no locks or atomics are needed.
 3. **Generate the performance plot:**
    ```bash
    pip install matplotlib pandas
-   python3 plot_results.py
+   python3 Plots/plot_results.py
    ```
    This produces `results/performance_plot.png`.
 
@@ -134,7 +134,7 @@ ever write to the same memory location — no locks or atomics are needed.
 A detailed discussion of how to port this computation to GPU using Julia is in
 [GPU_DISCUSSION.md](GPU_DISCUSSION.md). We wrote and ran a CUDA kernel on two GPUs
 — locally on an **RTX 4050 Laptop** and on **Google Colab with a Tesla T4** (see
-[ColabT4_GPU_Testing.ipynb](ColabT4_GPU_Testing.ipynb)).
+[ColabT4_GPU_Testing.ipynb](Codes/ColabT4_GPU_Testing.ipynb)).
 
 ### Measured GPU Results
 
@@ -175,7 +175,7 @@ GPUs, mainly to help with environment connectivity ,debugging and setup after re
 and tutorials.
 
 Additionally, AI was used to enhance console print formatting for better visual presentation
-of benchmark outputs (e.g., divider lines and structured output such as):
+of benchmark outputs (e.g., divider lines and structured output such as): and to write the python plot code.
 
 ```julia
 println(stderr, "============================================================")
@@ -184,6 +184,4 @@ println(stderr, "============================================================")
 ```
 
 These improvements were purely for visual clarity and presentation, and not for generating
-the core algorithmic implementation. The logic was developed independently after carefully understanding 
-the base code file, studying the underlying mathematical implementations, and exploring the relevant 
-features provided by the language.
+the core algorithmic implementation. The logic was developed independently after carefully understanding the base code file, studying the underlying mathematical implementations, and exploring the relevant features provided by the language.
