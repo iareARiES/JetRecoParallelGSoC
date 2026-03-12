@@ -1,46 +1,58 @@
-# Julia Jet Reconstruction — Parallel Processing Improvements
+# Parallel Processing Improvements in Julia Jet Reconstruction
+
 ## GSoC 2026 Evaluation Exercise
 
-## Prerequisites
-- Julia >= 1.9: https://julialang.org/downloads/
-- Python >= 3.9 with matplotlib and pandas
-- Bash shell
+This repository contains the evaluation exercise for candidates interested in the HSF/CERN GSoC project [*Parallel Processing Improvements in Julia Jet Reconstruction*](https://hepsoftwarefoundation.org/gsoc/2026/proposal_JuliaHEP_JetReconstruction.html).
 
-## Install Julia Packages (once)
-```julia
-using Pkg
-Pkg.add(["BenchmarkTools", "Statistics"])
-```
+## Instructions
 
-## Step-by-Step Reproduction
+1. Please get in touch with the [mentors of the project](https://hepsoftwarefoundation.org/gsoc/2026/proposal_JuliaHEP_JetReconstruction.html) to register your interest.
+2. Read the task instructions below carefully.
+3. Fork the repository and work on your solution.
+    - You may set your fork to *private*, if you wish.
+4. Invite the mentors to look at your solution *by 16 March*.
+    - We will give you some feedback and advice on whether we recommend you to proceed with a proposal for project.
 
-### Step 1 — Run all benchmarks
-```bash
-bash run_benchmarks.sh
-```
-This runs three stages (serial original → serial optimized → parallel 1/2/4/8/16 threads)
-and writes all results to `results/benchmark_results.csv`.
+## Task
 
-### Step 2 — Generate the performance plot
-```bash
-pip install matplotlib pandas
-python3 plot_results.py
-# Output: results/performance_plot.png
-```
+In this repository you will find a Julia script, `serial-euclid.jl` that
+calculates pairwise Euclidean distances between a large number of points.
 
-### Step 3 — Verify thread count (optional)
-```bash
-julia --threads 8 -e 'println("Active threads: ", Threads.nthreads())'
-# Should print: Active threads: 8
-```
+- Make sure you can setup Julia and run the code.
 
-### Run stages individually
-```bash
-julia bench-serial.jl                        # Stage 1
-julia bench-serial-optimized.jl              # Stage 2
-julia --threads 4 parallel-euclid.jl 4       # Stage 3, 4 threads
-```
+### Benchmark Serial Version
 
-## AI Usage Statement
-<!-- TODO: Fill this in yourself — describe honestly which AI tools you used and for what -->
-> _To be completed by the candidate._
+- Your first task is to benchmark the initial serial version of the code, using
+standard Julia tools.
+
+- Comment on
+    - how the benchmarking is done and why, with reference to
+    warm-ups, JIT and any other relevant factors;
+    - the efficiency of this serial version and on any obvious ways to
+    improve it.
+
+### Develop a Parallelisation Strategy
+
+- Now you should implement a parallel version of the code in Julia that can run
+on multiple CPU cores.
+
+- Make sure you benchmark the performance, as a function of the number of
+threads.
+
+- Please produce a plot of distance-measures-per-second vs. thread count and
+comment on the results you find.
+
+Your parallel version of the benchmarking code should contain simple
+instructions for how to reproduce the results (we will fork it and follow your
+instructions as part of the evaluation).
+
+### Discussion
+
+- Now imagine you now have to port this code to a GPU, using Julia. What would
+be the key things to pay attention to to ensure the performance is optimal?
+
+## Regarding AI
+
+It is permitted to use AI to help you in this project, but please *do not use
+coding assistants to generate your solution*. Please include a statement saying
+to what extent you used AI tools when undertaking the exercise.
